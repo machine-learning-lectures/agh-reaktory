@@ -1,0 +1,138 @@
+---
+title: "Lab 2: Simplex do MILP w Pyomo"
+jupyter: python3
+---
+
+## Pytanie przewodnie
+
+Co zyskujemy, gdy zamiast reguły zachłannej zapisujemy problem jako model matematyczny?
+
+## Cel laboratorium
+
+Po tym labie student powinien rozumieć:
+
+1. Różnicę między relaksacją LP a modelem binarnym.
+2. Dlaczego rozwiązanie ułamkowe może być świetną granicą, ale złym planem operacyjnym.
+3. Jak Pyomo oddziela model od solvera.
+
+## 1. Minimalny kontrprzykład
+
+Wracamy do instancji z labu 1. Greedy wybiera `A`, ale model binarny powinien wskazać `B + C`.
+
+```{python}
+from pathlib import Path
+import sys
+
+import pandas as pd
+
+ROOT = Path.cwd()
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from utilis.library import (
+    build_pyomo_outage_model,
+    greedy_select,
+    make_greedy_counterexample,
+    solve_pyomo_model,
+)
+
+tasks, limits = make_greedy_counterexample()
+pd.DataFrame(tasks)
+```
+
+## 2. LP-relaxation
+
+W relaksacji LP zmienna `x_i` może przyjąć wartość z przedziału `[0, 1]`. To odpowiada geometrii simpleksu: poruszamy się po wielościanie, ale nie wymagamy jeszcze decyzji całkowitych.
+
+```{python}
+lp_model = build_pyomo_outage_model(tasks, limits, binary=False)
+lp_result = solve_pyomo_model(lp_model)
+
+pd.DataFrame(lp_result["variables"])
+```
+
+```{python}
+{
+    "status": lp_result["termination_condition"],
+    "objective": lp_result["objective"],
+    "selected": lp_result["selected_task_ids"],
+}
+```
+
+## 3. MILP
+
+Teraz narzucamy `x_i ∈ {0, 1}`. To jest już decyzja: praca jest wykonana albo nie.
+
+```{python}
+milp_model = build_pyomo_outage_model(tasks, limits, binary=True)
+milp_result = solve_pyomo_model(milp_model)
+
+pd.DataFrame(milp_result["variables"])
+```
+
+```{python}
+{
+    "status": milp_result["termination_condition"],
+    "objective": milp_result["objective"],
+    "selected": milp_result["selected_task_ids"],
+}
+```
+
+## 4. Porównanie z greedy
+
+```{python}
+greedy_result = greedy_select(tasks, limits)
+
+pd.DataFrame(
+    [
+        {
+            "method": "greedy",
+            "objective": greedy_result["total_value"],
+            "selected": ", ".join(greedy_result["selected_task_ids"]),
+        },
+        {
+            "method": "LP relaxation",
+            "objective": lp_result["objective"],
+            "selected": ", ".join(lp_result["selected_task_ids"]),
+        },
+        {
+            "method": "MILP",
+            "objective": milp_result["objective"],
+            "selected": ", ".join(milp_result["selected_task_ids"]),
+        },
+    ]
+)
+```
+
+## 5. Większy syntetyczny backlog
+
+Na większej instancji model jest taki sam. Zmieniają się tylko dane.
+
+```{python}
+from utilis.library import DEFAULT_LIMITS, generate_outage_case
+
+large_tasks = generate_outage_case(seed=21, n_tasks=35, n_zones=8)
+large_milp = build_pyomo_outage_model(large_tasks, DEFAULT_LIMITS, binary=True)
+large_result = solve_pyomo_model(large_milp)
+
+large_result["evaluation"]
+```
+
+```{python}
+large_selected = pd.DataFrame(large_tasks)
+large_selected = large_selected[
+    large_selected["task_id"].isin(large_result["selected_task_ids"])
+]
+large_selected[["task_id", "duration", "work_cost", "dose_rate", "value"]].head(12)
+```
+
+## Interpretacja
+
+Pyomo nie jest „algorytmem simpleks”. Jest językiem modelowania. Solver dostaje symboliczną strukturę: zmienne, ograniczenia i funkcję celu. Dzięki temu ten sam model można potraktować jako LP-relaksację albo MILP.
+
+## Zadania
+
+1. Zmień limit dawki i sprawdź, które prace wypadają z rozwiązania.
+2. Dodaj ograniczenie: maksymalnie 10 wybranych prac.
+3. Dodaj drugą funkcję celu przez ważoną karę za dawkę.

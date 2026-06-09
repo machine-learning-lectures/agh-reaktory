@@ -1,0 +1,147 @@
+---
+title: "Lab 4: Simulated Annealing"
+jupyter: python3
+---
+
+## Pytanie przewodnie
+
+Dlaczego rozsądny algorytm miałby kiedykolwiek zaakceptować gorsze rozwiązanie?
+
+## Cel laboratorium
+
+Po tym labie student powinien rozumieć:
+
+1. Temperaturę jako kontrolę eksploracji.
+2. Regułę akceptacji Metropolisa.
+3. Wpływ harmonogramu chłodzenia na jakość i czas obliczeń.
+
+## 1. Ten sam problem, trudniejszy start
+
+Zaczynamy od trasy, która ma widoczne skrzyżowania. Local search będzie próbował ją poprawić przez 2-opt, a simulated annealing będzie czasem akceptował gorszy ruch.
+
+```{python}
+from pathlib import Path
+import random
+import sys
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+ROOT = Path.cwd()
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from utilis.library import (
+    euclidean_distance,
+    route_cost,
+    simulated_annealing,
+    tsp_segment_neighbor,
+    two_opt,
+)
+
+rng = random.Random(9)
+points = {
+    f"Z{i:02d}": (rng.uniform(0, 10), rng.uniform(0, 8))
+    for i in range(1, 15)
+}
+
+initial_route = list(points.keys())
+rng.shuffle(initial_route)
+distance = lambda a, b: euclidean_distance(points[a], points[b])
+initial_cost = route_cost(initial_route, distance)
+
+initial_route, initial_cost
+```
+
+## 2. Local Search jako punkt odniesienia
+
+```{python}
+ls_route, ls_cost, ls_history = two_opt(initial_route, distance)
+
+{
+    "initial_cost": initial_cost,
+    "local_search_cost": ls_cost,
+    "local_search_steps": len(ls_history) - 1,
+}
+```
+
+## 3. Symulowane wyżarzanie
+
+Dla minimalizacji akceptujemy pogorszenie `delta > 0` z prawdopodobieństwem:
+
+\[
+P = \exp\left(-\frac{\Delta}{T}\right).
+\]
+
+```{python}
+sa_result = simulated_annealing(
+    initial_state=initial_route,
+    objective=lambda route: route_cost(route, distance),
+    neighbor=tsp_segment_neighbor,
+    seed=42,
+    init_temp=4.0,
+    cooling_rate=0.985,
+    max_iters=700,
+    minimize=True,
+)
+
+{
+    "simulated_annealing_cost": sa_result["best_score"],
+    "accepted_worse": sa_result["accepted_worse"],
+    "accepted_worse_rate": sa_result["accepted_worse_rate"],
+}
+```
+
+## 4. Historia procesu
+
+```{python}
+history = pd.DataFrame(sa_result["history"])
+
+fig, axes = plt.subplots(1, 2, figsize=(11, 3.5))
+axes[0].plot(history["current_score"], alpha=0.55, label="current")
+axes[0].plot(history["best_score"], linewidth=2, label="best")
+axes[0].set_title("Koszt trasy podczas SA")
+axes[0].set_xlabel("iteracja")
+axes[0].set_ylabel("koszt")
+axes[0].legend()
+axes[0].grid(True, alpha=0.3)
+
+axes[1].plot(history["temperature"], color="#aa5533")
+axes[1].set_title("Harmonogram chłodzenia")
+axes[1].set_xlabel("iteracja")
+axes[1].set_ylabel("temperatura")
+axes[1].grid(True, alpha=0.3)
+plt.show()
+```
+
+## 5. Porównanie tras
+
+```{python}
+def plot_route(ax, route, title):
+    xs = [points[node][0] for node in route] + [points[route[0]][0]]
+    ys = [points[node][1] for node in route] + [points[route[0]][1]]
+    ax.plot(xs, ys, marker="o", linewidth=1.6)
+    for node in route:
+        x, y = points[node]
+        ax.text(x + 0.08, y + 0.08, node, fontsize=8)
+    ax.set_title(title)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True, alpha=0.25)
+
+fig, axes = plt.subplots(1, 3, figsize=(14, 4))
+plot_route(axes[0], initial_route, f"Start: {initial_cost:.2f}")
+plot_route(axes[1], ls_route, f"2-opt: {ls_cost:.2f}")
+plot_route(axes[2], sa_result["best_state"], f"SA: {sa_result['best_score']:.2f}")
+plt.show()
+```
+
+## Interpretacja
+
+Local search jest zachowawczy: bierze tylko poprawę. Simulated annealing zaczyna bardziej swobodnie, a potem stopniowo staje się podobny do local search. Harmonogram chłodzenia decyduje, czy algorytm zdąży eksplorować przestrzeń, zanim „zamarznie”.
+
+## Zadania
+
+1. Zmień `init_temp` na `0.1`, `2.0` i `20.0`. Co dzieje się z akceptacją gorszych ruchów?
+2. Porównaj `cooling_rate=0.90` i `0.995`.
+3. Zmień sąsiedztwo z odwrócenia segmentu na zamianę dwóch stref.

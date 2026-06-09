@@ -1,0 +1,111 @@
+---
+title: "Lab 1: Greedy jako pierwszy plan postoju"
+jupyter: python3
+---
+
+## Pytanie przewodnie
+
+Kiedy prosta reguła „bierz najbardziej opłacalną pracę jako pierwszą” daje sensowny plan, a kiedy produkuje elegancką pomyłkę?
+
+## Cel laboratorium
+
+Po tym labie student powinien rozumieć trzy rzeczy:
+
+1. Algorytm zachłanny jest świetnym baseline'em, bo jest szybki i interpretowalny.
+2. Poprawność greedy zależy od struktury problemu, nie od urody implementacji.
+3. W problemach 0-1 zaokrąglanie intuicji z wersji ciągłej bywa niebezpieczne.
+
+## 1. Syntetyczny backlog prac
+
+Zaczynamy od listy prac remontowych. Każda praca ma czas trwania, koszt wykonania, wartość unikniętego opóźnienia i przybliżoną dawkę wynikającą ze strefy.
+
+```{python}
+from pathlib import Path
+import sys
+
+import pandas as pd
+
+ROOT = Path.cwd()
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from utilis.library import DEFAULT_LIMITS, generate_outage_case
+
+tasks = generate_outage_case(seed=12, n_tasks=18, n_zones=6)
+df = pd.DataFrame(tasks)
+df.head(8)
+```
+
+## 2. Reguła zachłanna
+
+Reguła jest prosta: sortujemy po wartości przypadającej na jednostkę czasu i dokładamy zadania, dopóki nie naruszymy limitów.
+
+```{python}
+from utilis.library import greedy_select
+
+greedy = greedy_select(tasks, DEFAULT_LIMITS)
+greedy
+```
+
+```{python}
+selected = df[df["task_id"].isin(greedy["selected_task_ids"])].copy()
+selected["value_per_day"] = selected["value"] / selected["duration"]
+selected.sort_values("value_per_day", ascending=False).head(10)
+```
+
+## 3. Czy wykorzystaliśmy zasoby?
+
+```{python}
+import matplotlib.pyplot as plt
+
+usage = pd.DataFrame(
+    {
+        "resource": ["czas", "budżet", "dawka"],
+        "used": [
+            greedy["total_duration"],
+            greedy["total_budget"],
+            greedy["total_dose"],
+        ],
+        "limit": [
+            DEFAULT_LIMITS.max_duration,
+            DEFAULT_LIMITS.max_budget,
+            DEFAULT_LIMITS.max_dose,
+        ],
+    }
+)
+usage["share"] = usage["used"] / usage["limit"]
+
+ax = usage.plot.bar(x="resource", y="share", legend=False, color="#3366aa")
+ax.axhline(1.0, color="black", linewidth=1)
+ax.set_ylim(0, 1.1)
+ax.set_ylabel("wykorzystanie limitu")
+ax.set_title("Greedy: wykorzystanie ograniczeń")
+plt.show()
+```
+
+## 4. Kontrprzykład
+
+Greedy wygląda rozsądnie, dopóki nie pokażemy małej instancji, w której wybór lokalnie najlepszy blokuje lepszą parę prac.
+
+```{python}
+from utilis.library import make_greedy_counterexample
+
+counter_tasks, counter_limits = make_greedy_counterexample()
+counter_df = pd.DataFrame(counter_tasks)
+counter_df["value_per_duration"] = counter_df["value"] / counter_df["duration"]
+counter_df
+```
+
+```{python}
+counter_greedy = greedy_select(counter_tasks, counter_limits)
+counter_greedy
+```
+
+W tej instancji greedy wybiera pracę `A`, bo ma największą gęstość wartości. Optimum to jednak `B + C`, co zobaczymy w następnym labie przez model MILP.
+
+## Zadania
+
+1. Zmień funkcję priorytetu na `value / work_cost`. Czy plan wygląda lepiej?
+2. Dodaj karę za wysoką dawkę: `value / (duration * dose_rate)`. Które prace znikają?
+3. Znajdź własny kontrprzykład z czterema pracami.

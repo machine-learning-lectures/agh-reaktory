@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv
+
+# Quarto local cache
+.quarto/
+/.quarto/
+**/*.quarto_ipynb
+**/.ipynb_checkpoints/
+
+# Private local data
+notes/
