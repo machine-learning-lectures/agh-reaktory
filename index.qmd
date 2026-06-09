@@ -45,11 +45,3 @@ tasks = generate_outage_case(seed=42, n_tasks=5, n_zones=3)
 tasks[0]
 ```
 
-## Minimalny setup
-
-```bash
-uv run pytest
-uv run quarto render
-```
-
-Po renderze GitHub Pages może publikować katalog `docs/`.

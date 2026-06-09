@@ -221,7 +221,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="syntetyczny-backlog-prac" class="level2">
 <h2 class="anchored" data-anchor-id="syntetyczny-backlog-prac">1. Syntetyczny backlog prac</h2>
 <p>Zaczynamy od listy prac remontowych. Każda praca ma czas trwania, koszt wykonania, wartość unikniętego opóźnienia i przybliżoną dawkę wynikającą ze strefy.</p>
-<div id="8c4638bb" class="cell" data-execution_count="1">
+<div id="e9bb39e8" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
@@ -372,7 +372,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="reguła-zachłanna" class="level2">
 <h2 class="anchored" data-anchor-id="reguła-zachłanna">2. Reguła zachłanna</h2>
 <p>Reguła jest prosta: sortujemy po wartości przypadającej na jednostkę czasu i dokładamy zadania, dopóki nie naruszymy limitów.</p>
-<div id="c1cdaa37" class="cell" data-execution_count="2">
+<div id="9b23b19d" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> utilis.library <span class="im">import</span> greedy_select</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>greedy <span class="op">=</span> greedy_select(tasks, DEFAULT_LIMITS)</span>
@@ -397,7 +397,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  'method': 'greedy'}</code></pre>
 </div>
 </div>
-<div id="670d4987" class="cell" data-execution_count="3">
+<div id="7e39ff97" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>selected <span class="op">=</span> df[df[<span class="st">"task_id"</span>].isin(greedy[<span class="st">"selected_task_ids"</span>])].copy()</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>selected[<span class="st">"value_per_day"</span>] <span class="op">=</span> selected[<span class="st">"value"</span>] <span class="op">/</span> selected[<span class="st">"duration"</span>]</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>selected.sort_values(<span class="st">"value_per_day"</span>, ascending<span class="op">=</span><span class="va">False</span>).head(<span class="dv">10</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -572,7 +572,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="czy-wykorzystaliśmy-zasoby" class="level2">
 <h2 class="anchored" data-anchor-id="czy-wykorzystaliśmy-zasoby">3. Czy wykorzystaliśmy zasoby?</h2>
-<div id="d430eac1" class="cell" data-execution_count="4">
+<div id="662a5cd2" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>usage <span class="op">=</span> pd.DataFrame(</span>
@@ -610,7 +610,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="kontrprzykład" class="level2">
 <h2 class="anchored" data-anchor-id="kontrprzykład">4. Kontrprzykład</h2>
 <p>Greedy wygląda rozsądnie, dopóki nie pokażemy małej instancji, w której wybór lokalnie najlepszy blokuje lepszą parę prac.</p>
-<div id="1058fa37" class="cell" data-execution_count="5">
+<div id="043e940d" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> utilis.library <span class="im">import</span> make_greedy_counterexample</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>counter_tasks, counter_limits <span class="op">=</span> make_greedy_counterexample()</span>
@@ -687,7 +687,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="b8d5d5fe" class="cell" data-execution_count="6">
+<div id="1a8bc868" class="cell" data-execution_count="6">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>counter_greedy <span class="op">=</span> greedy_select(counter_tasks, counter_limits)</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>counter_greedy</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-display" data-execution_count="6">

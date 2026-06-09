@@ -222,7 +222,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="generujemy-pulę-kandydatów" class="level2">
 <h2 class="anchored" data-anchor-id="generujemy-pulę-kandydatów">1. Generujemy pulę kandydatów</h2>
 <p>Użyjemy wielu prostych reguł greedy z losowo zmienianymi wagami. To nie jest zaawansowany algorytm ewolucyjny. To dydaktyczny sposób na zebranie różnych planów.</p>
-<div id="cd5e45a6" class="cell" data-execution_count="1">
+<div id="de521401" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
@@ -359,7 +359,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="front-pareto" class="level2">
 <h2 class="anchored" data-anchor-id="front-pareto">2. Front Pareto</h2>
 <p>Rozwiązanie <code>a</code> dominuje <code>b</code>, jeśli jest nie gorsze we wszystkich kryteriach i lepsze w co najmniej jednym.</p>
-<div id="a8fc3619" class="cell" data-execution_count="2">
+<div id="4f8ecb72" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>front <span class="op">=</span> pareto_front(</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    candidates.to_dict(<span class="st">"records"</span>),</span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    objectives<span class="op">=</span>[</span>
@@ -381,7 +381,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="wizualizacja-kompromisu" class="level2">
 <h2 class="anchored" data-anchor-id="wizualizacja-kompromisu">3. Wizualizacja kompromisu</h2>
-<div id="f7491876" class="cell" data-execution_count="3">
+<div id="90141aff" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">7</span>, <span class="dv">5</span>))</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>scatter <span class="op">=</span> ax.scatter(</span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    candidates[<span class="st">"total_duration"</span>],</span>
@@ -417,7 +417,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="trzy-perspektywy-decyzyjne" class="level2">
 <h2 class="anchored" data-anchor-id="trzy-perspektywy-decyzyjne">4. Trzy perspektywy decyzyjne</h2>
-<div id="4f04d5ff" class="cell" data-execution_count="4">
+<div id="6898fd30" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>director <span class="op">=</span> front_df.sort_values(<span class="st">"lost_value"</span>).iloc[<span class="dv">0</span>]</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>radiation <span class="op">=</span> front_df.sort_values(<span class="st">"total_dose"</span>).iloc[<span class="dv">0</span>]</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>outage_manager <span class="op">=</span> front_df.sort_values(<span class="st">"total_duration"</span>).iloc[<span class="dv">0</span>]</span>
