@@ -1,0 +1,19 @@
+[project]
+name = "agh-reaktory"
+version = "0.1.0"
+description = "Python/Pyomo optimization micro-labs for AGH reactor outage planning"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "highspy>=1.14.0",
+    "jupyter>=1.1.1",
+    "matplotlib>=3.10.0",
+    "numpy>=2.3.0",
+    "pandas>=2.3.0",
+    "pyomo>=6.9.5",
+    "pytest>=8.4.0",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

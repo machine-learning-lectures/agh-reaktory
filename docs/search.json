@@ -1,0 +1,366 @@
+[
+  {
+    "objectID": "labs/05-pareto.html",
+    "href": "labs/05-pareto.html",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "",
+    "text": "Co znaczy „najlepszy plan”, jeśli dyrektor, kierownik postoju i ochrona radiologiczna optymalizują coś innego?"
+  },
+  {
+    "objectID": "labs/05-pareto.html#pytanie-przewodnie",
+    "href": "labs/05-pareto.html#pytanie-przewodnie",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "",
+    "text": "Co znaczy „najlepszy plan”, jeśli dyrektor, kierownik postoju i ochrona radiologiczna optymalizują coś innego?"
+  },
+  {
+    "objectID": "labs/05-pareto.html#cel-laboratorium",
+    "href": "labs/05-pareto.html#cel-laboratorium",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "Cel laboratorium",
+    "text": "Cel laboratorium\nPo tym labie student powinien rozumieć:\n\nDominację Pareto jako relację między rozwiązaniami.\nDlaczego front Pareto zastępuje jedną magiczną funkcję celu.\nJak prosto wyznaczyć front w czystym Pythonie."
+  },
+  {
+    "objectID": "labs/05-pareto.html#generujemy-pulę-kandydatów",
+    "href": "labs/05-pareto.html#generujemy-pulę-kandydatów",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "1. Generujemy pulę kandydatów",
+    "text": "1. Generujemy pulę kandydatów\nUżyjemy wielu prostych reguł greedy z losowo zmienianymi wagami. To nie jest zaawansowany algorytm ewolucyjny. To dydaktyczny sposób na zebranie różnych planów.\n\nfrom pathlib import Path\nimport random\nimport sys\n\nimport matplotlib.pyplot as plt\nimport pandas as pd\n\nROOT = Path.cwd()\nSRC = ROOT / \"src\"\nif str(SRC) not in sys.path:\n    sys.path.insert(0, str(SRC))\n\nfrom utilis.library import DEFAULT_LIMITS, generate_outage_case, greedy_select, pareto_front\n\ntasks = generate_outage_case(seed=77, n_tasks=45, n_zones=10)\ntotal_possible_value = sum(task[\"value\"] for task in tasks)\n\nrecords = []\nfor seed in range(280):\n    rng = random.Random(seed)\n    w_value = rng.uniform(0.8, 1.8)\n    w_duration = rng.uniform(0.2, 1.5)\n    w_cost = rng.uniform(0.1, 1.2)\n    w_dose = rng.uniform(0.1, 1.5)\n    noise = {task[\"task_id\"]: rng.uniform(0.85, 1.15) for task in tasks}\n\n    def priority(task, noise=noise):\n        denominator = (\n            w_duration * task[\"duration\"]\n            + w_cost * task[\"work_cost\"] / 30\n            + w_dose * task[\"duration\"] * task[\"dose_rate\"] / 10\n        )\n        return noise[task[\"task_id\"]] * w_value * task[\"value\"] / denominator\n\n    result = greedy_select(tasks, DEFAULT_LIMITS, priority=priority)\n    if result[\"n_tasks\"] == 0:\n        continue\n    records.append(\n        {\n            \"candidate\": seed,\n            \"n_tasks\": result[\"n_tasks\"],\n            \"total_duration\": result[\"total_duration\"],\n            \"total_budget\": result[\"total_budget\"],\n            \"total_dose\": result[\"total_dose\"],\n            \"total_value\": result[\"total_value\"],\n            \"lost_value\": total_possible_value - result[\"total_value\"],\n            \"selected\": \",\".join(result[\"selected_task_ids\"]),\n        }\n    )\n\ncandidates = pd.DataFrame(records).drop_duplicates(\"selected\")\ncandidates.head()\n\n\n\n\n\n\n\n\ncandidate\nn_tasks\ntotal_duration\ntotal_budget\ntotal_dose\ntotal_value\nlost_value\nselected\n\n\n\n\n0\n0\n12\n59.0\n840.0\n99.15\n2046.0\n4372.0\nT001,T006,T007,T015,T020,T025,T030,T035,T036,T...\n\n\n1\n1\n13\n63.0\n829.0\n137.04\n2105.0\n4313.0\nT001,T003,T006,T007,T015,T020,T023,T025,T030,T...\n\n\n3\n3\n13\n67.0\n836.0\n129.58\n2176.0\n4242.0\nT001,T003,T006,T007,T015,T020,T023,T025,T035,T...\n\n\n7\n7\n13\n72.0\n820.0\n141.68\n2212.0\n4206.0\nT001,T003,T006,T007,T015,T020,T023,T025,T036,T...\n\n\n15\n15\n16\n116.0\n850.0\n203.01\n2556.0\n3862.0\nT001,T002,T003,T006,T007,T009,T014,T015,T020,T..."
+  },
+  {
+    "objectID": "labs/05-pareto.html#front-pareto",
+    "href": "labs/05-pareto.html#front-pareto",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "2. Front Pareto",
+    "text": "2. Front Pareto\nRozwiązanie a dominuje b, jeśli jest nie gorsze we wszystkich kryteriach i lepsze w co najmniej jednym.\n\nfront = pareto_front(\n    candidates.to_dict(\"records\"),\n    objectives=[\n        (\"total_duration\", \"min\"),\n        (\"total_dose\", \"min\"),\n        (\"lost_value\", \"min\"),\n    ],\n)\nfront_df = pd.DataFrame(front)\n\n{\n    \"all_candidates\": len(candidates),\n    \"pareto_candidates\": len(front_df),\n}\n\n{'all_candidates': 26, 'pareto_candidates': 21}"
+  },
+  {
+    "objectID": "labs/05-pareto.html#wizualizacja-kompromisu",
+    "href": "labs/05-pareto.html#wizualizacja-kompromisu",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "3. Wizualizacja kompromisu",
+    "text": "3. Wizualizacja kompromisu\n\nfig, ax = plt.subplots(figsize=(7, 5))\nscatter = ax.scatter(\n    candidates[\"total_duration\"],\n    candidates[\"total_dose\"],\n    c=candidates[\"total_value\"],\n    cmap=\"viridis\",\n    alpha=0.35,\n    label=\"kandydaci\",\n)\nax.scatter(\n    front_df[\"total_duration\"],\n    front_df[\"total_dose\"],\n    color=\"#cc3333\",\n    edgecolor=\"black\",\n    s=70,\n    label=\"front Pareto\",\n)\nax.set_xlabel(\"czas prac w planie\")\nax.set_ylabel(\"łączna dawka\")\nax.set_title(\"Front Pareto: czas kontra dawka, kolor = wartość planu\")\nax.legend()\nfig.colorbar(scatter, ax=ax, label=\"total_value\")\nax.grid(True, alpha=0.25)\nplt.show()"
+  },
+  {
+    "objectID": "labs/05-pareto.html#trzy-perspektywy-decyzyjne",
+    "href": "labs/05-pareto.html#trzy-perspektywy-decyzyjne",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "4. Trzy perspektywy decyzyjne",
+    "text": "4. Trzy perspektywy decyzyjne\n\ndirector = front_df.sort_values(\"lost_value\").iloc[0]\nradiation = front_df.sort_values(\"total_dose\").iloc[0]\noutage_manager = front_df.sort_values(\"total_duration\").iloc[0]\n\npd.DataFrame(\n    [\n        {\"persona\": \"dyrektor\", **director.to_dict()},\n        {\"persona\": \"ochrona radiologiczna\", **radiation.to_dict()},\n        {\"persona\": \"kierownik postoju\", **outage_manager.to_dict()},\n    ]\n)[\n    [\n        \"persona\",\n        \"candidate\",\n        \"n_tasks\",\n        \"total_duration\",\n        \"total_budget\",\n        \"total_dose\",\n        \"total_value\",\n        \"lost_value\",\n    ]\n]\n\n\n\n\n\n\n\n\npersona\ncandidate\nn_tasks\ntotal_duration\ntotal_budget\ntotal_dose\ntotal_value\nlost_value\n\n\n\n\n0\ndyrektor\n15\n16\n116.0\n850.0\n203.01\n2556.0\n3862.0\n\n\n1\nochrona radiologiczna\n22\n11\n53.0\n848.0\n75.74\n1826.0\n4592.0\n\n\n2\nkierownik postoju\n25\n11\n50.0\n846.0\n91.51\n1869.0\n4549.0"
+  },
+  {
+    "objectID": "labs/05-pareto.html#interpretacja",
+    "href": "labs/05-pareto.html#interpretacja",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "Interpretacja",
+    "text": "Interpretacja\nFront Pareto nie podejmuje decyzji za człowieka. On uczciwie pokazuje, gdzie kończy się optymalizacja techniczna, a zaczyna wybór preferencji. Poprawa jednego kryterium wymaga pogorszenia innego, więc ostateczny plan zależy od roli decydenta."
+  },
+  {
+    "objectID": "labs/05-pareto.html#zadania",
+    "href": "labs/05-pareto.html#zadania",
+    "title": "Lab 5: Pareto Optimization",
+    "section": "Zadania",
+    "text": "Zadania\n\nDodaj czwarte kryterium: total_budget.\nWybierz plan metodą ważonej sumy i sprawdź, czy leży na froncie Pareto.\nZinterpretuj trzy wybrane plany z punktu widzenia bezpieczeństwa, kosztu i dostępności bloku."
+  },
+  {
+    "objectID": "labs/03-local-search.html",
+    "href": "labs/03-local-search.html",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "",
+    "text": "Jak poprawiać kompletne rozwiązanie bez budowania całego modelu MILP?"
+  },
+  {
+    "objectID": "labs/03-local-search.html#pytanie-przewodnie",
+    "href": "labs/03-local-search.html#pytanie-przewodnie",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "",
+    "text": "Jak poprawiać kompletne rozwiązanie bez budowania całego modelu MILP?"
+  },
+  {
+    "objectID": "labs/03-local-search.html#cel-laboratorium",
+    "href": "labs/03-local-search.html#cel-laboratorium",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "Cel laboratorium",
+    "text": "Cel laboratorium\nPo tym labie student powinien rozumieć:\n\nRóżnicę między rozwiązaniem konstrukcyjnym a poprawiającym.\nCzym jest sąsiedztwo rozwiązania.\nDlaczego local search może szybko poprawić trasę, ale nie daje gwarancji globalnego optimum."
+  },
+  {
+    "objectID": "labs/03-local-search.html#strefy-postoju-jako-punkty",
+    "href": "labs/03-local-search.html#strefy-postoju-jako-punkty",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "1. Strefy postoju jako punkty",
+    "text": "1. Strefy postoju jako punkty\nTraktujemy strefy prac jako punkty na uproszczonej mapie. Ekipa ma odwiedzić wszystkie strefy i wrócić do punktu startowego.\n\nfrom pathlib import Path\nimport random\nimport sys\n\nimport matplotlib.pyplot as plt\nimport pandas as pd\n\nROOT = Path.cwd()\nSRC = ROOT / \"src\"\nif str(SRC) not in sys.path:\n    sys.path.insert(0, str(SRC))\n\nfrom utilis.library import (\n    euclidean_distance,\n    nearest_neighbor_route,\n    route_cost,\n    two_opt,\n)\n\nrng = random.Random(31)\npoints = {\n    f\"Z{i:02d}\": (rng.uniform(0, 10), rng.uniform(0, 7))\n    for i in range(1, 13)\n}\n\npd.DataFrame(\n    [{\"zone\": zone, \"x\": xy[0], \"y\": xy[1]} for zone, xy in points.items()]\n).head()\n\n\n\n\n\n\n\n\nzone\nx\ny\n\n\n\n\n0\nZ01\n0.122782\n0.786792\n\n\n1\nZ02\n3.928374\n4.787050\n\n\n2\nZ03\n1.386909\n0.787105\n\n\n3\nZ04\n2.318024\n5.303147\n\n\n4\nZ05\n1.474012\n5.184586"
+  },
+  {
+    "objectID": "labs/03-local-search.html#baseline-najbliższy-sąsiad",
+    "href": "labs/03-local-search.html#baseline-najbliższy-sąsiad",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "2. Baseline: najbliższy sąsiad",
+    "text": "2. Baseline: najbliższy sąsiad\n\ndistance = lambda a, b: euclidean_distance(points[a], points[b])\n\nnn_route = nearest_neighbor_route(points, start=\"Z01\")\nnn_cost = route_cost(nn_route, distance)\n\nnn_route, nn_cost\n\n(['Z01',\n  'Z09',\n  'Z03',\n  'Z11',\n  'Z05',\n  'Z04',\n  'Z02',\n  'Z12',\n  'Z08',\n  'Z07',\n  'Z06',\n  'Z10'],\n 30.790030228375482)"
+  },
+  {
+    "objectID": "labs/03-local-search.html#local-search-przez-2-opt",
+    "href": "labs/03-local-search.html#local-search-przez-2-opt",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "3. Local Search przez 2-opt",
+    "text": "3. Local Search przez 2-opt\nRuch 2-opt usuwa dwie krawędzie i odwraca fragment trasy. Jeśli nowa trasa jest krótsza, akceptujemy zmianę.\n\nimproved_route, improved_cost, history = two_opt(nn_route, distance)\n\n{\n    \"nearest_neighbor_cost\": nn_cost,\n    \"two_opt_cost\": improved_cost,\n    \"improvement_percent\": 100 * (nn_cost - improved_cost) / nn_cost,\n    \"steps\": len(history) - 1,\n}\n\n{'nearest_neighbor_cost': 30.790030228375482,\n 'two_opt_cost': 29.446973068675653,\n 'improvement_percent': 4.36198714239031,\n 'steps': 2}"
+  },
+  {
+    "objectID": "labs/03-local-search.html#wizualizacja",
+    "href": "labs/03-local-search.html#wizualizacja",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "4. Wizualizacja",
+    "text": "4. Wizualizacja\n\ndef plot_route(ax, route, title):\n    xs = [points[node][0] for node in route] + [points[route[0]][0]]\n    ys = [points[node][1] for node in route] + [points[route[0]][1]]\n    ax.plot(xs, ys, marker=\"o\", linewidth=1.8)\n    for node in route:\n        x, y = points[node]\n        ax.text(x + 0.08, y + 0.08, node, fontsize=8)\n    ax.set_title(title)\n    ax.set_aspect(\"equal\", adjustable=\"box\")\n    ax.grid(True, alpha=0.25)\n\nfig, axes = plt.subplots(1, 2, figsize=(11, 4))\nplot_route(axes[0], nn_route, f\"Nearest neighbor: {nn_cost:.2f}\")\nplot_route(axes[1], improved_route, f\"2-opt: {improved_cost:.2f}\")\nplt.show()\n\n\n\n\n\n\n\n\n\nfig, ax = plt.subplots(figsize=(6, 3))\nax.plot(history, marker=\"o\")\nax.set_title(\"Historia poprawy 2-opt\")\nax.set_xlabel(\"zaakceptowana poprawa\")\nax.set_ylabel(\"koszt trasy\")\nax.grid(True, alpha=0.3)\nplt.show()"
+  },
+  {
+    "objectID": "labs/03-local-search.html#interpretacja",
+    "href": "labs/03-local-search.html#interpretacja",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "Interpretacja",
+    "text": "Interpretacja\nLocal search nie szuka w całej przestrzeni. Szuka w sąsiedztwie aktualnego rozwiązania. Ta prostota jest jego siłą i słabością: kod jest szybki, ale zatrzymuje się, gdy żadna pojedyncza operacja 2-opt nie poprawia trasy."
+  },
+  {
+    "objectID": "labs/03-local-search.html#zadania",
+    "href": "labs/03-local-search.html#zadania",
+    "title": "Lab 3: Local Search dla tras ekip",
+    "section": "Zadania",
+    "text": "Zadania\n\nUruchom 2-opt z losowej trasy i porównaj z nearest neighbor.\nZmień funkcję odległości tak, aby karała strefy o wysokiej dawce.\nSprawdź, czy inny punkt startowy zmienia końcową trasę."
+  },
+  {
+    "objectID": "labs/01-greedy.html",
+    "href": "labs/01-greedy.html",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "",
+    "text": "Kiedy prosta reguła „bierz najbardziej opłacalną pracę jako pierwszą” daje sensowny plan, a kiedy produkuje elegancką pomyłkę?"
+  },
+  {
+    "objectID": "labs/01-greedy.html#pytanie-przewodnie",
+    "href": "labs/01-greedy.html#pytanie-przewodnie",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "",
+    "text": "Kiedy prosta reguła „bierz najbardziej opłacalną pracę jako pierwszą” daje sensowny plan, a kiedy produkuje elegancką pomyłkę?"
+  },
+  {
+    "objectID": "labs/01-greedy.html#cel-laboratorium",
+    "href": "labs/01-greedy.html#cel-laboratorium",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "Cel laboratorium",
+    "text": "Cel laboratorium\nPo tym labie student powinien rozumieć trzy rzeczy:\n\nAlgorytm zachłanny jest świetnym baseline’em, bo jest szybki i interpretowalny.\nPoprawność greedy zależy od struktury problemu, nie od urody implementacji.\nW problemach 0-1 zaokrąglanie intuicji z wersji ciągłej bywa niebezpieczne."
+  },
+  {
+    "objectID": "labs/01-greedy.html#syntetyczny-backlog-prac",
+    "href": "labs/01-greedy.html#syntetyczny-backlog-prac",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "1. Syntetyczny backlog prac",
+    "text": "1. Syntetyczny backlog prac\nZaczynamy od listy prac remontowych. Każda praca ma czas trwania, koszt wykonania, wartość unikniętego opóźnienia i przybliżoną dawkę wynikającą ze strefy.\n\nfrom pathlib import Path\nimport sys\n\nimport pandas as pd\n\nROOT = Path.cwd()\nSRC = ROOT / \"src\"\nif str(SRC) not in sys.path:\n    sys.path.insert(0, str(SRC))\n\nfrom utilis.library import DEFAULT_LIMITS, generate_outage_case\n\ntasks = generate_outage_case(seed=12, n_tasks=18, n_zones=6)\ndf = pd.DataFrame(tasks)\ndf.head(8)\n\n\n\n\n\n\n\n\ntask_id\nduration\ncrew_type\nzone\nvalue\nwork_cost\ndelay_cost\ndose_rate\nsafety_group\npredecessors\n\n\n\n\n0\nT001\n17\nfuel\nZ03\n105\n49\n86\n1.90\nnone\n[]\n\n\n1\nT002\n8\ni_and_c\nZ03\n99\n135\n41\n1.99\nA\n[]\n\n\n2\nT003\n13\nradiation\nZ05\n56\n122\n26\n0.33\nB\n[]\n\n\n3\nT004\n16\nradiation\nZ01\n108\n34\n99\n1.93\nB\n[]\n\n\n4\nT005\n4\nfuel\nZ06\n167\n41\n79\n1.98\nnone\n[]\n\n\n5\nT006\n15\nfuel\nZ04\n122\n23\n97\n1.02\nC\n[]\n\n\n6\nT007\n14\nradiation\nZ03\n114\n106\n54\n2.07\nC\n[]\n\n\n7\nT008\n8\nmechanical\nZ05\n92\n68\n120\n0.55\nB\n[]"
+  },
+  {
+    "objectID": "labs/01-greedy.html#reguła-zachłanna",
+    "href": "labs/01-greedy.html#reguła-zachłanna",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "2. Reguła zachłanna",
+    "text": "2. Reguła zachłanna\nReguła jest prosta: sortujemy po wartości przypadającej na jednostkę czasu i dokładamy zadania, dopóki nie naruszymy limitów.\n\nfrom utilis.library import greedy_select\n\ngreedy = greedy_select(tasks, DEFAULT_LIMITS)\ngreedy\n\n{'selected_task_ids': ['T002',\n  'T005',\n  'T008',\n  'T010',\n  'T011',\n  'T012',\n  'T013',\n  'T014',\n  'T015',\n  'T018'],\n 'n_tasks': 10,\n 'total_duration': 76.0,\n 'total_budget': 835.0,\n 'total_dose': 84.03,\n 'total_value': 1433.0,\n 'feasible': True,\n 'method': 'greedy'}\n\n\n\nselected = df[df[\"task_id\"].isin(greedy[\"selected_task_ids\"])].copy()\nselected[\"value_per_day\"] = selected[\"value\"] / selected[\"duration\"]\nselected.sort_values(\"value_per_day\", ascending=False).head(10)\n\n\n\n\n\n\n\n\ntask_id\nduration\ncrew_type\nzone\nvalue\nwork_cost\ndelay_cost\ndose_rate\nsafety_group\npredecessors\nvalue_per_day\n\n\n\n\n4\nT005\n4\nfuel\nZ06\n167\n41\n79\n1.98\nnone\n[]\n41.750000\n\n\n12\nT013\n3\ni_and_c\nZ05\n125\n137\n113\n0.54\nB\n[T001]\n41.666667\n\n\n14\nT015\n6\nelectrical\nZ06\n191\n120\n82\n1.68\nC\n[]\n31.833333\n\n\n9\nT010\n5\ni_and_c\nZ02\n149\n24\n70\n2.29\nA\n[]\n29.800000\n\n\n13\nT014\n6\ni_and_c\nZ05\n147\n89\n79\n0.37\nC\n[]\n24.500000\n\n\n17\nT018\n11\nradiation\nZ05\n170\n37\n45\n0.38\nC\n[]\n15.454545\n\n\n11\nT012\n8\nradiation\nZ02\n116\n138\n85\n2.43\nB\n[]\n14.500000\n\n\n1\nT002\n8\ni_and_c\nZ03\n99\n135\n41\n1.99\nA\n[]\n12.375000\n\n\n7\nT008\n8\nmechanical\nZ05\n92\n68\n120\n0.55\nB\n[]\n11.500000\n\n\n10\nT011\n17\ni_and_c\nZ05\n177\n46\n58\n0.40\nnone\n[]\n10.411765"
+  },
+  {
+    "objectID": "labs/01-greedy.html#czy-wykorzystaliśmy-zasoby",
+    "href": "labs/01-greedy.html#czy-wykorzystaliśmy-zasoby",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "3. Czy wykorzystaliśmy zasoby?",
+    "text": "3. Czy wykorzystaliśmy zasoby?\n\nimport matplotlib.pyplot as plt\n\nusage = pd.DataFrame(\n    {\n        \"resource\": [\"czas\", \"budżet\", \"dawka\"],\n        \"used\": [\n            greedy[\"total_duration\"],\n            greedy[\"total_budget\"],\n            greedy[\"total_dose\"],\n        ],\n        \"limit\": [\n            DEFAULT_LIMITS.max_duration,\n            DEFAULT_LIMITS.max_budget,\n            DEFAULT_LIMITS.max_dose,\n        ],\n    }\n)\nusage[\"share\"] = usage[\"used\"] / usage[\"limit\"]\n\nax = usage.plot.bar(x=\"resource\", y=\"share\", legend=False, color=\"#3366aa\")\nax.axhline(1.0, color=\"black\", linewidth=1)\nax.set_ylim(0, 1.1)\nax.set_ylabel(\"wykorzystanie limitu\")\nax.set_title(\"Greedy: wykorzystanie ograniczeń\")\nplt.show()"
+  },
+  {
+    "objectID": "labs/01-greedy.html#kontrprzykład",
+    "href": "labs/01-greedy.html#kontrprzykład",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "4. Kontrprzykład",
+    "text": "4. Kontrprzykład\nGreedy wygląda rozsądnie, dopóki nie pokażemy małej instancji, w której wybór lokalnie najlepszy blokuje lepszą parę prac.\n\nfrom utilis.library import make_greedy_counterexample\n\ncounter_tasks, counter_limits = make_greedy_counterexample()\ncounter_df = pd.DataFrame(counter_tasks)\ncounter_df[\"value_per_duration\"] = counter_df[\"value\"] / counter_df[\"duration\"]\ncounter_df\n\n\n\n\n\n\n\n\ntask_id\nduration\ncrew_type\nzone\nvalue\nwork_cost\ndelay_cost\ndose_rate\nsafety_group\npredecessors\nvalue_per_duration\n\n\n\n\n0\nA\n6\nmechanical\nZ01\n10\n1\n10\n1.0\nnone\n[]\n1.666667\n\n\n1\nB\n5\nmechanical\nZ01\n7\n1\n7\n1.0\nnone\n[]\n1.400000\n\n\n2\nC\n5\nmechanical\nZ01\n7\n1\n7\n1.0\nnone\n[]\n1.400000\n\n\n\n\n\n\n\n\ncounter_greedy = greedy_select(counter_tasks, counter_limits)\ncounter_greedy\n\n{'selected_task_ids': ['A'],\n 'n_tasks': 1,\n 'total_duration': 6.0,\n 'total_budget': 1.0,\n 'total_dose': 6.0,\n 'total_value': 10.0,\n 'feasible': True,\n 'method': 'greedy'}\n\n\nW tej instancji greedy wybiera pracę A, bo ma największą gęstość wartości. Optimum to jednak B + C, co zobaczymy w następnym labie przez model MILP."
+  },
+  {
+    "objectID": "labs/01-greedy.html#zadania",
+    "href": "labs/01-greedy.html#zadania",
+    "title": "Lab 1: Greedy jako pierwszy plan postoju",
+    "section": "Zadania",
+    "text": "Zadania\n\nZmień funkcję priorytetu na value / work_cost. Czy plan wygląda lepiej?\nDodaj karę za wysoką dawkę: value / (duration * dose_rate). Które prace znikają?\nZnajdź własny kontrprzykład z czterema pracami."
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Python/Pyomo dla optymalizacji postoju bloku jądrowego",
+    "section": "",
+    "text": "Jak zamienić intuicję „skróćmy postój” na zestaw modeli i algorytmów, które potrafią równoważyć czas, koszt, dawkę, zasoby i ryzyko?"
+  },
+  {
+    "objectID": "index.html#pytanie-przewodnie",
+    "href": "index.html#pytanie-przewodnie",
+    "title": "Python/Pyomo dla optymalizacji postoju bloku jądrowego",
+    "section": "",
+    "text": "Jak zamienić intuicję „skróćmy postój” na zestaw modeli i algorytmów, które potrafią równoważyć czas, koszt, dawkę, zasoby i ryzyko?"
+  },
+  {
+    "objectID": "index.html#cel-zajęć",
+    "href": "index.html#cel-zajęć",
+    "title": "Python/Pyomo dla optymalizacji postoju bloku jądrowego",
+    "section": "Cel zajęć",
+    "text": "Cel zajęć\nTe mikro-laby pokazują optymalizację jako praktyczny język decyzji. Pracujemy na syntetycznym case’ie postoju paliwowo-remontowego bloku jądrowego: mamy backlog prac, ograniczone zasoby, strefy o różnych poziomach ekspozycji i kilka sprzecznych celów.\nKod jest celowo prosty:\n\nPyomo służy do jawnego modelowania LP/MILP.\nCzysty Python pokazuje greedy, local search, simulated annealing i Pareto.\npandas/matplotlib służą tylko do analizy i wizualizacji."
+  },
+  {
+    "objectID": "index.html#ścieżka-laboratoriów",
+    "href": "index.html#ścieżka-laboratoriów",
+    "title": "Python/Pyomo dla optymalizacji postoju bloku jądrowego",
+    "section": "Ścieżka laboratoriów",
+    "text": "Ścieżka laboratoriów\n\nGreedy: szybki pierwszy plan i kontrprzykład, w którym zachłanność przegrywa.\nPyomo LP/MILP: ten sam problem zapisany jako model matematyczny.\nLocal Search: trasa ekip po strefach i poprawa przez 2-opt.\nSimulated Annealing: kontrolowana akceptacja gorszych ruchów.\nPareto Optimization: front kompromisów między czasem, kosztem i dawką."
+  },
+  {
+    "objectID": "index.html#wspólny-import",
+    "href": "index.html#wspólny-import",
+    "title": "Python/Pyomo dla optymalizacji postoju bloku jądrowego",
+    "section": "Wspólny import",
+    "text": "Wspólny import\nKażdy lab korzysta z modułu src/utilis/library.py. W repozytorium testy sprawdzają najważniejsze elementy: generator danych, feasibility, greedy, Pyomo, 2-opt, simulated annealing i Pareto.\n\nfrom pathlib import Path\nimport sys\n\nROOT = Path.cwd()\nSRC = ROOT / \"src\"\nif str(SRC) not in sys.path:\n    sys.path.insert(0, str(SRC))\n\nfrom utilis.library import generate_outage_case\n\ntasks = generate_outage_case(seed=42, n_tasks=5, n_zones=3)\ntasks[0]\n\n{'task_id': 'T001',\n 'duration': 7,\n 'crew_type': 'mechanical',\n 'zone': 'Z01',\n 'value': 101,\n 'work_cost': 106,\n 'delay_cost': 109,\n 'dose_rate': 3.14,\n 'safety_group': 'none',\n 'predecessors': []}"
+  },
+  {
+    "objectID": "index.html#minimalny-setup",
+    "href": "index.html#minimalny-setup",
+    "title": "Python/Pyomo dla optymalizacji postoju bloku jądrowego",
+    "section": "Minimalny setup",
+    "text": "Minimalny setup\nuv run pytest\nuv run quarto render\nPo renderze GitHub Pages może publikować katalog docs/."
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html",
+    "href": "labs/02-pyomo-milp.html",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "",
+    "text": "Co zyskujemy, gdy zamiast reguły zachłannej zapisujemy problem jako model matematyczny?"
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#pytanie-przewodnie",
+    "href": "labs/02-pyomo-milp.html#pytanie-przewodnie",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "",
+    "text": "Co zyskujemy, gdy zamiast reguły zachłannej zapisujemy problem jako model matematyczny?"
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#cel-laboratorium",
+    "href": "labs/02-pyomo-milp.html#cel-laboratorium",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "Cel laboratorium",
+    "text": "Cel laboratorium\nPo tym labie student powinien rozumieć:\n\nRóżnicę między relaksacją LP a modelem binarnym.\nDlaczego rozwiązanie ułamkowe może być świetną granicą, ale złym planem operacyjnym.\nJak Pyomo oddziela model od solvera."
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#minimalny-kontrprzykład",
+    "href": "labs/02-pyomo-milp.html#minimalny-kontrprzykład",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "1. Minimalny kontrprzykład",
+    "text": "1. Minimalny kontrprzykład\nWracamy do instancji z labu 1. Greedy wybiera A, ale model binarny powinien wskazać B + C.\n\nfrom pathlib import Path\nimport sys\n\nimport pandas as pd\n\nROOT = Path.cwd()\nSRC = ROOT / \"src\"\nif str(SRC) not in sys.path:\n    sys.path.insert(0, str(SRC))\n\nfrom utilis.library import (\n    build_pyomo_outage_model,\n    greedy_select,\n    make_greedy_counterexample,\n    solve_pyomo_model,\n)\n\ntasks, limits = make_greedy_counterexample()\npd.DataFrame(tasks)\n\n\n\n\n\n\n\n\ntask_id\nduration\ncrew_type\nzone\nvalue\nwork_cost\ndelay_cost\ndose_rate\nsafety_group\npredecessors\n\n\n\n\n0\nA\n6\nmechanical\nZ01\n10\n1\n10\n1.0\nnone\n[]\n\n\n1\nB\n5\nmechanical\nZ01\n7\n1\n7\n1.0\nnone\n[]\n\n\n2\nC\n5\nmechanical\nZ01\n7\n1\n7\n1.0\nnone\n[]"
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#lp-relaxation",
+    "href": "labs/02-pyomo-milp.html#lp-relaxation",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "2. LP-relaxation",
+    "text": "2. LP-relaxation\nW relaksacji LP zmienna x_i może przyjąć wartość z przedziału [0, 1]. To odpowiada geometrii simpleksu: poruszamy się po wielościanie, ale nie wymagamy jeszcze decyzji całkowitych.\n\nlp_model = build_pyomo_outage_model(tasks, limits, binary=False)\nlp_result = solve_pyomo_model(lp_model)\n\npd.DataFrame(lp_result[\"variables\"])\n\n\n\n\n\n\n\n\ntask_id\nx\n\n\n\n\n0\nA\n1.0\n\n\n1\nB\n0.0\n\n\n2\nC\n0.8\n\n\n\n\n\n\n\n\n{\n    \"status\": lp_result[\"termination_condition\"],\n    \"objective\": lp_result[\"objective\"],\n    \"selected\": lp_result[\"selected_task_ids\"],\n}\n\n{'status': 'optimal', 'objective': 15.600000000000001, 'selected': ['A', 'C']}"
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#milp",
+    "href": "labs/02-pyomo-milp.html#milp",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "3. MILP",
+    "text": "3. MILP\nTeraz narzucamy x_i ∈ {0, 1}. To jest już decyzja: praca jest wykonana albo nie.\n\nmilp_model = build_pyomo_outage_model(tasks, limits, binary=True)\nmilp_result = solve_pyomo_model(milp_model)\n\npd.DataFrame(milp_result[\"variables\"])\n\n\n\n\n\n\n\n\ntask_id\nx\n\n\n\n\n0\nA\n0.0\n\n\n1\nB\n1.0\n\n\n2\nC\n1.0\n\n\n\n\n\n\n\n\n{\n    \"status\": milp_result[\"termination_condition\"],\n    \"objective\": milp_result[\"objective\"],\n    \"selected\": milp_result[\"selected_task_ids\"],\n}\n\n{'status': 'optimal', 'objective': 14.0, 'selected': ['B', 'C']}"
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#porównanie-z-greedy",
+    "href": "labs/02-pyomo-milp.html#porównanie-z-greedy",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "4. Porównanie z greedy",
+    "text": "4. Porównanie z greedy\n\ngreedy_result = greedy_select(tasks, limits)\n\npd.DataFrame(\n    [\n        {\n            \"method\": \"greedy\",\n            \"objective\": greedy_result[\"total_value\"],\n            \"selected\": \", \".join(greedy_result[\"selected_task_ids\"]),\n        },\n        {\n            \"method\": \"LP relaxation\",\n            \"objective\": lp_result[\"objective\"],\n            \"selected\": \", \".join(lp_result[\"selected_task_ids\"]),\n        },\n        {\n            \"method\": \"MILP\",\n            \"objective\": milp_result[\"objective\"],\n            \"selected\": \", \".join(milp_result[\"selected_task_ids\"]),\n        },\n    ]\n)\n\n\n\n\n\n\n\n\nmethod\nobjective\nselected\n\n\n\n\n0\ngreedy\n10.0\nA\n\n\n1\nLP relaxation\n15.6\nA, C\n\n\n2\nMILP\n14.0\nB, C"
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#większy-syntetyczny-backlog",
+    "href": "labs/02-pyomo-milp.html#większy-syntetyczny-backlog",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "5. Większy syntetyczny backlog",
+    "text": "5. Większy syntetyczny backlog\nNa większej instancji model jest taki sam. Zmieniają się tylko dane.\n\nfrom utilis.library import DEFAULT_LIMITS, generate_outage_case\n\nlarge_tasks = generate_outage_case(seed=21, n_tasks=35, n_zones=8)\nlarge_milp = build_pyomo_outage_model(large_tasks, DEFAULT_LIMITS, binary=True)\nlarge_result = solve_pyomo_model(large_milp)\n\nlarge_result[\"evaluation\"]\n\n{'selected_task_ids': ['T002',\n  'T004',\n  'T005',\n  'T008',\n  'T016',\n  'T018',\n  'T021',\n  'T022',\n  'T023',\n  'T027',\n  'T029',\n  'T030',\n  'T031',\n  'T035'],\n 'n_tasks': 14,\n 'total_duration': 134.0,\n 'total_budget': 848.0,\n 'total_dose': 247.78,\n 'total_value': 2392.0,\n 'feasible': True}\n\n\n\nlarge_selected = pd.DataFrame(large_tasks)\nlarge_selected = large_selected[\n    large_selected[\"task_id\"].isin(large_result[\"selected_task_ids\"])\n]\nlarge_selected[[\"task_id\", \"duration\", \"work_cost\", \"dose_rate\", \"value\"]].head(12)\n\n\n\n\n\n\n\n\ntask_id\nduration\nwork_cost\ndose_rate\nvalue\n\n\n\n\n1\nT002\n4\n114\n2.46\n193\n\n\n3\nT004\n17\n90\n0.89\n202\n\n\n4\nT005\n9\n106\n3.35\n230\n\n\n7\nT008\n8\n20\n2.07\n197\n\n\n15\nT016\n11\n61\n0.83\n222\n\n\n17\nT018\n6\n36\n2.80\n136\n\n\n20\nT021\n10\n39\n1.10\n129\n\n\n21\nT022\n4\n96\n2.46\n211\n\n\n22\nT023\n13\n65\n2.45\n147\n\n\n26\nT027\n11\n81\n2.00\n162\n\n\n28\nT029\n15\n33\n1.28\n98\n\n\n29\nT030\n11\n23\n2.05\n94"
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#interpretacja",
+    "href": "labs/02-pyomo-milp.html#interpretacja",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "Interpretacja",
+    "text": "Interpretacja\nPyomo nie jest „algorytmem simpleks”. Jest językiem modelowania. Solver dostaje symboliczną strukturę: zmienne, ograniczenia i funkcję celu. Dzięki temu ten sam model można potraktować jako LP-relaksację albo MILP."
+  },
+  {
+    "objectID": "labs/02-pyomo-milp.html#zadania",
+    "href": "labs/02-pyomo-milp.html#zadania",
+    "title": "Lab 2: Simplex do MILP w Pyomo",
+    "section": "Zadania",
+    "text": "Zadania\n\nZmień limit dawki i sprawdź, które prace wypadają z rozwiązania.\nDodaj ograniczenie: maksymalnie 10 wybranych prac.\nDodaj drugą funkcję celu przez ważoną karę za dawkę."
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html",
+    "href": "labs/04-simulated-annealing.html",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "",
+    "text": "Dlaczego rozsądny algorytm miałby kiedykolwiek zaakceptować gorsze rozwiązanie?"
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#pytanie-przewodnie",
+    "href": "labs/04-simulated-annealing.html#pytanie-przewodnie",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "",
+    "text": "Dlaczego rozsądny algorytm miałby kiedykolwiek zaakceptować gorsze rozwiązanie?"
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#cel-laboratorium",
+    "href": "labs/04-simulated-annealing.html#cel-laboratorium",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "Cel laboratorium",
+    "text": "Cel laboratorium\nPo tym labie student powinien rozumieć:\n\nTemperaturę jako kontrolę eksploracji.\nRegułę akceptacji Metropolisa.\nWpływ harmonogramu chłodzenia na jakość i czas obliczeń."
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#ten-sam-problem-trudniejszy-start",
+    "href": "labs/04-simulated-annealing.html#ten-sam-problem-trudniejszy-start",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "1. Ten sam problem, trudniejszy start",
+    "text": "1. Ten sam problem, trudniejszy start\nZaczynamy od trasy, która ma widoczne skrzyżowania. Local search będzie próbował ją poprawić przez 2-opt, a simulated annealing będzie czasem akceptował gorszy ruch.\n\nfrom pathlib import Path\nimport random\nimport sys\n\nimport matplotlib.pyplot as plt\nimport pandas as pd\n\nROOT = Path.cwd()\nSRC = ROOT / \"src\"\nif str(SRC) not in sys.path:\n    sys.path.insert(0, str(SRC))\n\nfrom utilis.library import (\n    euclidean_distance,\n    route_cost,\n    simulated_annealing,\n    tsp_segment_neighbor,\n    two_opt,\n)\n\nrng = random.Random(9)\npoints = {\n    f\"Z{i:02d}\": (rng.uniform(0, 10), rng.uniform(0, 8))\n    for i in range(1, 15)\n}\n\ninitial_route = list(points.keys())\nrng.shuffle(initial_route)\ndistance = lambda a, b: euclidean_distance(points[a], points[b])\ninitial_cost = route_cost(initial_route, distance)\n\ninitial_route, initial_cost\n\n(['Z03',\n  'Z11',\n  'Z09',\n  'Z08',\n  'Z13',\n  'Z01',\n  'Z10',\n  'Z06',\n  'Z12',\n  'Z14',\n  'Z04',\n  'Z05',\n  'Z02',\n  'Z07'],\n 74.97563950026768)"
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#local-search-jako-punkt-odniesienia",
+    "href": "labs/04-simulated-annealing.html#local-search-jako-punkt-odniesienia",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "2. Local Search jako punkt odniesienia",
+    "text": "2. Local Search jako punkt odniesienia\n\nls_route, ls_cost, ls_history = two_opt(initial_route, distance)\n\n{\n    \"initial_cost\": initial_cost,\n    \"local_search_cost\": ls_cost,\n    \"local_search_steps\": len(ls_history) - 1,\n}\n\n{'initial_cost': 74.97563950026768,\n 'local_search_cost': 36.1299994116969,\n 'local_search_steps': 19}"
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#symulowane-wyżarzanie",
+    "href": "labs/04-simulated-annealing.html#symulowane-wyżarzanie",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "3. Symulowane wyżarzanie",
+    "text": "3. Symulowane wyżarzanie\nDla minimalizacji akceptujemy pogorszenie delta &gt; 0 z prawdopodobieństwem:\n[ P = (-). ]\n\nsa_result = simulated_annealing(\n    initial_state=initial_route,\n    objective=lambda route: route_cost(route, distance),\n    neighbor=tsp_segment_neighbor,\n    seed=42,\n    init_temp=4.0,\n    cooling_rate=0.985,\n    max_iters=700,\n    minimize=True,\n)\n\n{\n    \"simulated_annealing_cost\": sa_result[\"best_score\"],\n    \"accepted_worse\": sa_result[\"accepted_worse\"],\n    \"accepted_worse_rate\": sa_result[\"accepted_worse_rate\"],\n}\n\n{'simulated_annealing_cost': 38.51289696304584,\n 'accepted_worse': 15,\n 'accepted_worse_rate': 0.02142857142857143}"
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#historia-procesu",
+    "href": "labs/04-simulated-annealing.html#historia-procesu",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "4. Historia procesu",
+    "text": "4. Historia procesu\n\nhistory = pd.DataFrame(sa_result[\"history\"])\n\nfig, axes = plt.subplots(1, 2, figsize=(11, 3.5))\naxes[0].plot(history[\"current_score\"], alpha=0.55, label=\"current\")\naxes[0].plot(history[\"best_score\"], linewidth=2, label=\"best\")\naxes[0].set_title(\"Koszt trasy podczas SA\")\naxes[0].set_xlabel(\"iteracja\")\naxes[0].set_ylabel(\"koszt\")\naxes[0].legend()\naxes[0].grid(True, alpha=0.3)\n\naxes[1].plot(history[\"temperature\"], color=\"#aa5533\")\naxes[1].set_title(\"Harmonogram chłodzenia\")\naxes[1].set_xlabel(\"iteracja\")\naxes[1].set_ylabel(\"temperatura\")\naxes[1].grid(True, alpha=0.3)\nplt.show()"
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#porównanie-tras",
+    "href": "labs/04-simulated-annealing.html#porównanie-tras",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "5. Porównanie tras",
+    "text": "5. Porównanie tras\n\ndef plot_route(ax, route, title):\n    xs = [points[node][0] for node in route] + [points[route[0]][0]]\n    ys = [points[node][1] for node in route] + [points[route[0]][1]]\n    ax.plot(xs, ys, marker=\"o\", linewidth=1.6)\n    for node in route:\n        x, y = points[node]\n        ax.text(x + 0.08, y + 0.08, node, fontsize=8)\n    ax.set_title(title)\n    ax.set_aspect(\"equal\", adjustable=\"box\")\n    ax.grid(True, alpha=0.25)\n\nfig, axes = plt.subplots(1, 3, figsize=(14, 4))\nplot_route(axes[0], initial_route, f\"Start: {initial_cost:.2f}\")\nplot_route(axes[1], ls_route, f\"2-opt: {ls_cost:.2f}\")\nplot_route(axes[2], sa_result[\"best_state\"], f\"SA: {sa_result['best_score']:.2f}\")\nplt.show()"
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#interpretacja",
+    "href": "labs/04-simulated-annealing.html#interpretacja",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "Interpretacja",
+    "text": "Interpretacja\nLocal search jest zachowawczy: bierze tylko poprawę. Simulated annealing zaczyna bardziej swobodnie, a potem stopniowo staje się podobny do local search. Harmonogram chłodzenia decyduje, czy algorytm zdąży eksplorować przestrzeń, zanim „zamarznie”."
+  },
+  {
+    "objectID": "labs/04-simulated-annealing.html#zadania",
+    "href": "labs/04-simulated-annealing.html#zadania",
+    "title": "Lab 4: Simulated Annealing",
+    "section": "Zadania",
+    "text": "Zadania\n\nZmień init_temp na 0.1, 2.0 i 20.0. Co dzieje się z akceptacją gorszych ruchów?\nPorównaj cooling_rate=0.90 i 0.995.\nZmień sąsiedztwo z odwrócenia segmentu na zamianę dwóch stref."
+  }
+]

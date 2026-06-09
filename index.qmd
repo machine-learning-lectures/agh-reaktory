@@ -1,0 +1,55 @@
+---
+title: "Python/Pyomo dla optymalizacji postoju bloku jądrowego"
+subtitle: "Pięć mikro-labów dla studentów AGH"
+jupyter: python3
+---
+
+## Pytanie przewodnie
+
+Jak zamienić intuicję „skróćmy postój” na zestaw modeli i algorytmów, które potrafią równoważyć czas, koszt, dawkę, zasoby i ryzyko?
+
+## Cel zajęć
+
+Te mikro-laby pokazują optymalizację jako praktyczny język decyzji. Pracujemy na syntetycznym case'ie postoju paliwowo-remontowego bloku jądrowego: mamy backlog prac, ograniczone zasoby, strefy o różnych poziomach ekspozycji i kilka sprzecznych celów.
+
+Kod jest celowo prosty:
+
+- **Pyomo** służy do jawnego modelowania LP/MILP.
+- **Czysty Python** pokazuje greedy, local search, simulated annealing i Pareto.
+- **pandas/matplotlib** służą tylko do analizy i wizualizacji.
+
+## Ścieżka laboratoriów
+
+1. **Greedy**: szybki pierwszy plan i kontrprzykład, w którym zachłanność przegrywa.
+2. **Pyomo LP/MILP**: ten sam problem zapisany jako model matematyczny.
+3. **Local Search**: trasa ekip po strefach i poprawa przez 2-opt.
+4. **Simulated Annealing**: kontrolowana akceptacja gorszych ruchów.
+5. **Pareto Optimization**: front kompromisów między czasem, kosztem i dawką.
+
+## Wspólny import
+
+Każdy lab korzysta z modułu `src/utilis/library.py`. W repozytorium testy sprawdzają najważniejsze elementy: generator danych, feasibility, greedy, Pyomo, 2-opt, simulated annealing i Pareto.
+
+```{python}
+from pathlib import Path
+import sys
+
+ROOT = Path.cwd()
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from utilis.library import generate_outage_case
+
+tasks = generate_outage_case(seed=42, n_tasks=5, n_zones=3)
+tasks[0]
+```
+
+## Minimalny setup
+
+```bash
+uv run pytest
+uv run quarto render
+```
+
+Po renderze GitHub Pages może publikować katalog `docs/`.

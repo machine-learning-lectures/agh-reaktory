@@ -1,0 +1,162 @@
+---
+title: "Lab 5: Pareto Optimization"
+jupyter: python3
+---
+
+## Pytanie przewodnie
+
+Co znaczy „najlepszy plan”, jeśli dyrektor, kierownik postoju i ochrona radiologiczna optymalizują coś innego?
+
+## Cel laboratorium
+
+Po tym labie student powinien rozumieć:
+
+1. Dominację Pareto jako relację między rozwiązaniami.
+2. Dlaczego front Pareto zastępuje jedną magiczną funkcję celu.
+3. Jak prosto wyznaczyć front w czystym Pythonie.
+
+## 1. Generujemy pulę kandydatów
+
+Użyjemy wielu prostych reguł greedy z losowo zmienianymi wagami. To nie jest zaawansowany algorytm ewolucyjny. To dydaktyczny sposób na zebranie różnych planów.
+
+```{python}
+from pathlib import Path
+import random
+import sys
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+ROOT = Path.cwd()
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from utilis.library import DEFAULT_LIMITS, generate_outage_case, greedy_select, pareto_front
+
+tasks = generate_outage_case(seed=77, n_tasks=45, n_zones=10)
+total_possible_value = sum(task["value"] for task in tasks)
+
+records = []
+for seed in range(280):
+    rng = random.Random(seed)
+    w_value = rng.uniform(0.8, 1.8)
+    w_duration = rng.uniform(0.2, 1.5)
+    w_cost = rng.uniform(0.1, 1.2)
+    w_dose = rng.uniform(0.1, 1.5)
+    noise = {task["task_id"]: rng.uniform(0.85, 1.15) for task in tasks}
+
+    def priority(task, noise=noise):
+        denominator = (
+            w_duration * task["duration"]
+            + w_cost * task["work_cost"] / 30
+            + w_dose * task["duration"] * task["dose_rate"] / 10
+        )
+        return noise[task["task_id"]] * w_value * task["value"] / denominator
+
+    result = greedy_select(tasks, DEFAULT_LIMITS, priority=priority)
+    if result["n_tasks"] == 0:
+        continue
+    records.append(
+        {
+            "candidate": seed,
+            "n_tasks": result["n_tasks"],
+            "total_duration": result["total_duration"],
+            "total_budget": result["total_budget"],
+            "total_dose": result["total_dose"],
+            "total_value": result["total_value"],
+            "lost_value": total_possible_value - result["total_value"],
+            "selected": ",".join(result["selected_task_ids"]),
+        }
+    )
+
+candidates = pd.DataFrame(records).drop_duplicates("selected")
+candidates.head()
+```
+
+## 2. Front Pareto
+
+Rozwiązanie `a` dominuje `b`, jeśli jest nie gorsze we wszystkich kryteriach i lepsze w co najmniej jednym.
+
+```{python}
+front = pareto_front(
+    candidates.to_dict("records"),
+    objectives=[
+        ("total_duration", "min"),
+        ("total_dose", "min"),
+        ("lost_value", "min"),
+    ],
+)
+front_df = pd.DataFrame(front)
+
+{
+    "all_candidates": len(candidates),
+    "pareto_candidates": len(front_df),
+}
+```
+
+## 3. Wizualizacja kompromisu
+
+```{python}
+fig, ax = plt.subplots(figsize=(7, 5))
+scatter = ax.scatter(
+    candidates["total_duration"],
+    candidates["total_dose"],
+    c=candidates["total_value"],
+    cmap="viridis",
+    alpha=0.35,
+    label="kandydaci",
+)
+ax.scatter(
+    front_df["total_duration"],
+    front_df["total_dose"],
+    color="#cc3333",
+    edgecolor="black",
+    s=70,
+    label="front Pareto",
+)
+ax.set_xlabel("czas prac w planie")
+ax.set_ylabel("łączna dawka")
+ax.set_title("Front Pareto: czas kontra dawka, kolor = wartość planu")
+ax.legend()
+fig.colorbar(scatter, ax=ax, label="total_value")
+ax.grid(True, alpha=0.25)
+plt.show()
+```
+
+## 4. Trzy perspektywy decyzyjne
+
+```{python}
+director = front_df.sort_values("lost_value").iloc[0]
+radiation = front_df.sort_values("total_dose").iloc[0]
+outage_manager = front_df.sort_values("total_duration").iloc[0]
+
+pd.DataFrame(
+    [
+        {"persona": "dyrektor", **director.to_dict()},
+        {"persona": "ochrona radiologiczna", **radiation.to_dict()},
+        {"persona": "kierownik postoju", **outage_manager.to_dict()},
+    ]
+)[
+    [
+        "persona",
+        "candidate",
+        "n_tasks",
+        "total_duration",
+        "total_budget",
+        "total_dose",
+        "total_value",
+        "lost_value",
+    ]
+]
+```
+
+## Interpretacja
+
+Front Pareto nie podejmuje decyzji za człowieka. On uczciwie pokazuje, gdzie kończy się optymalizacja techniczna, a zaczyna wybór preferencji. Poprawa jednego kryterium wymaga pogorszenia innego, więc ostateczny plan zależy od roli decydenta.
+
+## Zadania
+
+1. Dodaj czwarte kryterium: `total_budget`.
+2. Wybierz plan metodą ważonej sumy i sprawdź, czy leży na froncie Pareto.
+3. Zinterpretuj trzy wybrane plany z punktu widzenia bezpieczeństwa, kosztu i dostępności bloku.

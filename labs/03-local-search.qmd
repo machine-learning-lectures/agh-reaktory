@@ -1,0 +1,117 @@
+---
+title: "Lab 3: Local Search dla tras ekip"
+jupyter: python3
+---
+
+## Pytanie przewodnie
+
+Jak poprawiać kompletne rozwiązanie bez budowania całego modelu MILP?
+
+## Cel laboratorium
+
+Po tym labie student powinien rozumieć:
+
+1. Różnicę między rozwiązaniem konstrukcyjnym a poprawiającym.
+2. Czym jest sąsiedztwo rozwiązania.
+3. Dlaczego local search może szybko poprawić trasę, ale nie daje gwarancji globalnego optimum.
+
+## 1. Strefy postoju jako punkty
+
+Traktujemy strefy prac jako punkty na uproszczonej mapie. Ekipa ma odwiedzić wszystkie strefy i wrócić do punktu startowego.
+
+```{python}
+from pathlib import Path
+import random
+import sys
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
+ROOT = Path.cwd()
+SRC = ROOT / "src"
+if str(SRC) not in sys.path:
+    sys.path.insert(0, str(SRC))
+
+from utilis.library import (
+    euclidean_distance,
+    nearest_neighbor_route,
+    route_cost,
+    two_opt,
+)
+
+rng = random.Random(31)
+points = {
+    f"Z{i:02d}": (rng.uniform(0, 10), rng.uniform(0, 7))
+    for i in range(1, 13)
+}
+
+pd.DataFrame(
+    [{"zone": zone, "x": xy[0], "y": xy[1]} for zone, xy in points.items()]
+).head()
+```
+
+## 2. Baseline: najbliższy sąsiad
+
+```{python}
+distance = lambda a, b: euclidean_distance(points[a], points[b])
+
+nn_route = nearest_neighbor_route(points, start="Z01")
+nn_cost = route_cost(nn_route, distance)
+
+nn_route, nn_cost
+```
+
+## 3. Local Search przez 2-opt
+
+Ruch 2-opt usuwa dwie krawędzie i odwraca fragment trasy. Jeśli nowa trasa jest krótsza, akceptujemy zmianę.
+
+```{python}
+improved_route, improved_cost, history = two_opt(nn_route, distance)
+
+{
+    "nearest_neighbor_cost": nn_cost,
+    "two_opt_cost": improved_cost,
+    "improvement_percent": 100 * (nn_cost - improved_cost) / nn_cost,
+    "steps": len(history) - 1,
+}
+```
+
+## 4. Wizualizacja
+
+```{python}
+def plot_route(ax, route, title):
+    xs = [points[node][0] for node in route] + [points[route[0]][0]]
+    ys = [points[node][1] for node in route] + [points[route[0]][1]]
+    ax.plot(xs, ys, marker="o", linewidth=1.8)
+    for node in route:
+        x, y = points[node]
+        ax.text(x + 0.08, y + 0.08, node, fontsize=8)
+    ax.set_title(title)
+    ax.set_aspect("equal", adjustable="box")
+    ax.grid(True, alpha=0.25)
+
+fig, axes = plt.subplots(1, 2, figsize=(11, 4))
+plot_route(axes[0], nn_route, f"Nearest neighbor: {nn_cost:.2f}")
+plot_route(axes[1], improved_route, f"2-opt: {improved_cost:.2f}")
+plt.show()
+```
+
+```{python}
+fig, ax = plt.subplots(figsize=(6, 3))
+ax.plot(history, marker="o")
+ax.set_title("Historia poprawy 2-opt")
+ax.set_xlabel("zaakceptowana poprawa")
+ax.set_ylabel("koszt trasy")
+ax.grid(True, alpha=0.3)
+plt.show()
+```
+
+## Interpretacja
+
+Local search nie szuka w całej przestrzeni. Szuka w sąsiedztwie aktualnego rozwiązania. Ta prostota jest jego siłą i słabością: kod jest szybki, ale zatrzymuje się, gdy żadna pojedyncza operacja 2-opt nie poprawia trasy.
+
+## Zadania
+
+1. Uruchom 2-opt z losowej trasy i porównaj z nearest neighbor.
+2. Zmień funkcję odległości tak, aby karała strefy o wysokiej dawce.
+3. Sprawdź, czy inny punkt startowy zmienia końcową trasę.

@@ -1,0 +1,38 @@
+project:
+  type: website
+  output-dir: docs
+  execute-dir: project
+  render:
+    - index.qmd
+    - labs/*.qmd
+
+website:
+  title: "AGH Reaktory: Optymalizacja w Pythonie"
+  navbar:
+    left:
+      - href: index.qmd
+        text: Start
+      - href: labs/01-greedy.qmd
+        text: "1 Greedy"
+      - href: labs/02-pyomo-milp.qmd
+        text: "2 Pyomo"
+      - href: labs/03-local-search.qmd
+        text: "3 Local Search"
+      - href: labs/04-simulated-annealing.qmd
+        text: "4 SA"
+      - href: labs/05-pareto.qmd
+        text: "5 Pareto"
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 3
+    code-copy: true
+    code-fold: false
+    page-layout: full
+
+execute:
+  echo: true
+  warning: false
+  message: false
