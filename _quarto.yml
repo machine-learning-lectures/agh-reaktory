@@ -4,6 +4,7 @@ project:
   execute-dir: project
   render:
     - index.qmd
+    - library.qmd
     - labs/*.qmd
 
 website:
@@ -22,6 +23,8 @@ website:
         text: "4 SA"
       - href: labs/05-pareto.qmd
         text: "5 Pareto"
+      - href: library.qmd
+        text: "Biblioteka"
 
 format:
   html:

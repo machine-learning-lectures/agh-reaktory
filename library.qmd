@@ -1,0 +1,64 @@
+---
+title: "Biblioteka: `src/utilis/library.py`"
+subtitle: "Wspólny moduł dla mikro-labów"
+jupyter: python3
+---
+
+## Pytanie przewodnie
+
+Co dokładnie znajduje się we wspólnej bibliotece używanej przez wszystkie mikro-laby?
+
+## Rola pliku
+
+`src/utilis/library.py` jest celowo małą biblioteką dydaktyczną. Zawiera:
+
+- syntetyczny generator danych dla postoju bloku,
+- baseline greedy,
+- model LP/MILP w Pyomo,
+- czyste implementacje nearest neighbor, 2-opt i simulated annealing,
+- prostą funkcję frontu Pareto,
+- mały kontrprzykład, w którym greedy przegrywa z MILP.
+
+## Mapa API
+
+Poniższa tabela jest generowana bezpośrednio z aktualnego pliku `library.py`.
+
+```{python}
+from pathlib import Path
+import ast
+import pandas as pd
+
+source_path = Path("src/utilis/library.py")
+tree = ast.parse(source_path.read_text(encoding="utf-8"))
+
+rows = []
+for node in tree.body:
+    if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+        rows.append(
+            {
+                "typ": "class" if isinstance(node, ast.ClassDef) else "function",
+                "nazwa": node.name,
+                "linia": node.lineno,
+                "opis": (ast.get_docstring(node) or "").splitlines()[0]
+                if ast.get_docstring(node)
+                else "",
+            }
+        )
+
+pd.DataFrame(rows)
+```
+
+## Pełny kod źródłowy
+
+```{.python filename="src/utilis/library.py"}
+{{< include src/utilis/library.py >}}
+```
+
+## Jak korzystać na zajęciach
+
+Studenci nie muszą czytać całej biblioteki od razu. W praktyce:
+
+1. W labie 1 wystarczą `generate_outage_case`, `greedy_select` i `make_greedy_counterexample`.
+2. W labie 2 dochodzą `build_pyomo_outage_model` i `solve_pyomo_model`.
+3. W labach 3-4 najważniejsze są `nearest_neighbor_route`, `two_opt`, `route_cost`, `simulated_annealing`.
+4. W labie 5 kluczowa jest funkcja `pareto_front`.

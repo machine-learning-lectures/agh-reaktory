@@ -150,6 +150,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="nav-link" href="../labs/05-pareto.html"> 
 <span class="menu-text">5 Pareto</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../library.html"> 
+<span class="menu-text">Biblioteka</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -216,7 +220,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="ten-sam-problem-trudniejszy-start" class="level2">
 <h2 class="anchored" data-anchor-id="ten-sam-problem-trudniejszy-start">1. Ten sam problem, trudniejszy start</h2>
 <p>Zaczynamy od trasy, która ma widoczne skrzyżowania. Local search będzie próbował ją poprawić przez 2-opt, a simulated annealing będzie czasem akceptował gorszy ruch.</p>
-<div id="76461c36" class="cell" data-execution_count="1">
+<div id="3e9998ec" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
@@ -270,7 +274,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="local-search-jako-punkt-odniesienia" class="level2">
 <h2 class="anchored" data-anchor-id="local-search-jako-punkt-odniesienia">2. Local Search jako punkt odniesienia</h2>
-<div id="ffe920d2" class="cell" data-execution_count="2">
+<div id="f9c0d372" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ls_route, ls_cost, ls_history <span class="op">=</span> two_opt(initial_route, distance)</span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>{</span>
@@ -289,7 +293,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="symulowane-wyżarzanie">3. Symulowane wyżarzanie</h2>
 <p>Dla minimalizacji akceptujemy pogorszenie <code>delta &gt; 0</code> z prawdopodobieństwem:</p>
 <p>[ P = (-). ]</p>
-<div id="4ee19624" class="cell" data-execution_count="3">
+<div id="a868aad2" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>sa_result <span class="op">=</span> simulated_annealing(</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    initial_state<span class="op">=</span>initial_route,</span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    objective<span class="op">=</span><span class="kw">lambda</span> route: route_cost(route, distance),</span>
@@ -315,7 +319,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="historia-procesu" class="level2">
 <h2 class="anchored" data-anchor-id="historia-procesu">4. Historia procesu</h2>
-<div id="3ff77aa2" class="cell" data-execution_count="4">
+<div id="041efafd" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> pd.DataFrame(sa_result[<span class="st">"history"</span>])</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">11</span>, <span class="fl">3.5</span>))</span>
@@ -344,7 +348,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="porównanie-tras" class="level2">
 <h2 class="anchored" data-anchor-id="porównanie-tras">5. Porównanie tras</h2>
-<div id="dc8fe5fb" class="cell" data-execution_count="5">
+<div id="22fa6c00" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_route(ax, route, title):</span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    xs <span class="op">=</span> [points[node][<span class="dv">0</span>] <span class="cf">for</span> node <span class="kw">in</span> route] <span class="op">+</span> [points[route[<span class="dv">0</span>]][<span class="dv">0</span>]]</span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> [points[node][<span class="dv">1</span>] <span class="cf">for</span> node <span class="kw">in</span> route] <span class="op">+</span> [points[route[<span class="dv">0</span>]][<span class="dv">1</span>]]</span>

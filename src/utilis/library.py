@@ -604,17 +604,3 @@ def local_search(problem: KnapsackProblem, max_iters: int = 1000) -> tuple[list[
     """Backward-compatible alias for the original knapsack local search demo."""
 
     return knapsack_local_search(problem, max_iters=max_iters)
-
-
-if __name__ == "__main__":
-    values = [10, 20, 15, 30, 40, 12, 18, 5, 25, 35]
-    weights = [5, 12, 8, 17, 22, 6, 9, 3, 11, 15]
-    knapsack = KnapsackProblem(values=values, weights=weights, capacity=50)
-
-    ls_state, ls_val = knapsack_local_search(knapsack, max_iters=500, seed=42)
-    sa_state, sa_val = knapsack_simulated_annealing(
-        knapsack, init_temp=50.0, cooling_rate=0.98, max_iters=500, seed=42
-    )
-
-    print("Local Search:", ls_val, ls_state)
-    print("Simulated Annealing:", sa_val, sa_state)

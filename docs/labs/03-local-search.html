@@ -153,6 +153,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="nav-link" href="../labs/05-pareto.html"> 
 <span class="menu-text">5 Pareto</span></a>
   </li>  
+  <li class="nav-item">
+    <a class="nav-link" href="../library.html"> 
+<span class="menu-text">Biblioteka</span></a>
+  </li>  
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
@@ -218,7 +222,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="strefy-postoju-jako-punkty" class="level2">
 <h2 class="anchored" data-anchor-id="strefy-postoju-jako-punkty">1. Strefy postoju jako punkty</h2>
 <p>Traktujemy strefy prac jako punkty na uproszczonej mapie. Ekipa ma odwiedzić wszystkie strefy i wrócić do punktu startowego.</p>
-<div id="10cb49c5" class="cell" data-execution_count="1">
+<div id="f19d72ba" class="cell" data-execution_count="1">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pathlib <span class="im">import</span> Path</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> sys</span>
@@ -300,7 +304,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="baseline-najbliższy-sąsiad" class="level2">
 <h2 class="anchored" data-anchor-id="baseline-najbliższy-sąsiad">2. Baseline: najbliższy sąsiad</h2>
-<div id="ee4d1707" class="cell" data-execution_count="2">
+<div id="3aea9cd9" class="cell" data-execution_count="2">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>distance <span class="op">=</span> <span class="kw">lambda</span> a, b: euclidean_distance(points[a], points[b])</span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>nn_route <span class="op">=</span> nearest_neighbor_route(points, start<span class="op">=</span><span class="st">"Z01"</span>)</span>
@@ -327,7 +331,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="local-search-przez-2-opt" class="level2">
 <h2 class="anchored" data-anchor-id="local-search-przez-2-opt">3. Local Search przez 2-opt</h2>
 <p>Ruch 2-opt usuwa dwie krawędzie i odwraca fragment trasy. Jeśli nowa trasa jest krótsza, akceptujemy zmianę.</p>
-<div id="9af08133" class="cell" data-execution_count="3">
+<div id="03ad900a" class="cell" data-execution_count="3">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>improved_route, improved_cost, history <span class="op">=</span> two_opt(nn_route, distance)</span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>{</span>
@@ -346,7 +350,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="wizualizacja" class="level2">
 <h2 class="anchored" data-anchor-id="wizualizacja">4. Wizualizacja</h2>
-<div id="49c148ad" class="cell" data-execution_count="4">
+<div id="562cee9d" class="cell" data-execution_count="4">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_route(ax, route, title):</span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    xs <span class="op">=</span> [points[node][<span class="dv">0</span>] <span class="cf">for</span> node <span class="kw">in</span> route] <span class="op">+</span> [points[route[<span class="dv">0</span>]][<span class="dv">0</span>]]</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    ys <span class="op">=</span> [points[node][<span class="dv">1</span>] <span class="cf">for</span> node <span class="kw">in</span> route] <span class="op">+</span> [points[route[<span class="dv">0</span>]][<span class="dv">1</span>]]</span>
@@ -370,7 +374,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 </div>
 </div>
-<div id="7381cebc" class="cell" data-execution_count="5">
+<div id="25897e58" class="cell" data-execution_count="5">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">3</span>))</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>ax.plot(history, marker<span class="op">=</span><span class="st">"o"</span>)</span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>ax.set_title(<span class="st">"Historia poprawy 2-opt"</span>)</span>
